@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from st_aggrid import AgGrid, GridOptionsBuilder
 import plotly.express as px
 from io import BytesIO
 import base64
@@ -89,9 +88,8 @@ if st.button("🔢 Calcola confronto"):
     
     # Tabella
     st.subheader("📊 Confronto dettagliato")
-    gb = GridOptionsBuilder.from_dataframe(df_confronto)
-    gb.configure_column("Semaforo", cellRenderer="htmlCellRenderer")
-    grid_response = AgGrid(df_confronto, gridOptions=gb.build())
+    st.subheader("📊 Confronto dettagliato")
+st.dataframe(df_confronto)
     
     # Totali
     col1, col2, col3, col4 = st.columns(4)
