@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Via Debito — Controllo Spese ISTAT 2024</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; min-height: 100vh; color: #111827; }
+.page { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+/* HEADER */
+.hdr { background: #1a3a5c; border-radius: 12px 12px 0 0; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.hdr img { height: 36px; object-fit: contain; }
+.hdr-r { color: rgba(255,255,255,0.65); font-size: 12px; text-align: right; }
+.hdr-r strong { display: block; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 500; }
+
+/* CONTENT */
+.box { background: #fff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; }
+.intro { margin-bottom: 24px; }
+.intro h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1a3a5c; }
+.intro p { color: #4b5563; font-size: 14px; line-height: 1.5; }
+
+/* TABLE DESKTOP */
+.dt-wrap { display: none; overflow-x: auto; margin-bottom: 24px; }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th { text-align: left; padding: 12px 16px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; color: #374151; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+td { padding: 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+
+/* STILE NOTE BIGNAMI */
+.nota-istat { font-size: 11px; color: #6b7280; font-weight: normal; margin-top: 4px; line-height: 1.3; }
+
+input[type="number"] { width: 100px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+input[type="number"]:focus { border-color: #1a3a5c; ring: 2px #1a3a5c; }
+
+/* MOBILE CARDS */
+.mv-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+.mv { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
+.mv-title { font-weight: 700; color: #1a3a5c; font-size: 15px; margin-bottom: 4px; }
+.mv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.mv-field label { display: block; font-size: 11px; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+.mv-istat { font-size: 16px; font-weight: 600; color: #374151; padding-top: 6px; }
+.mv-res { border-top: 1px solid #f3f4f6; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; }
+.mv-res span { font-size: 13px; color: #6b7280; }
+
+/* ESITO TAGS */
+.esito { padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; display: inline-block; }
+.esito-ok { background: #dcfce7; color: #166534; }
+.esito-ko { background: #fee2e2; color: #991b1b; }
+.esito-neu { background: #f3f4f6; color: #4b5563; }
+
+@media (min-width: 768px) { .dt-wrap { display: block; } .mv-list { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="hdr">
+    <div style="color:white; font-weight:bold; font-size:18px;">Via Debito</div>
+    <div class="hdr-r">
+      Soglie Medie Mensili
+      <strong>ISTAT (Paniere 2025)</strong>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="intro">
+      <h1>Confronto Spese Familiari</h1>
+      <p>Inserisci le tue spese medie mensili per capire come ti posizioni rispetto alla media nazionale ISTAT. Questo strumento serve per orientamento nel bilancio familiare e nel piano di rientro dal debito.</p>
+    </div>
+
+    <div class="dt-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40%">Categoria Spesa</th>
+            <th style="width:20%">Tua Spesa (€)</th>
+            <th style="width:15%">Media ISTAT</th>
+            <th style="width:10%">Scarto</th>
+            <th style="width:15%">Esito</th>
+          </tr>
+        </thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+
+    <div id="mob" class="mv-list"></div>
+
+  </div>
+</div>
+
+<script>
+const VOCI = [
+  "01. Cibo e Bevande (casa)",
+  "02. Alcolici e Tabacco",
+  "03. Abbigliamento e Scarpe",
+  "04. Abitazione e Bollette",
+  "05. Arredo e Pulizia Casa",
+  "06. Salute e Spese Mediche",
+  "07. Auto e Trasporti",
+  "08. Telefono, Internet e PC",
+  "09. Tempo Libero e Animali",
+  "10. Istruzione",
+  "11. Bar, Ristoranti e Vacanze",
+  "12. Cura Personale e Assicurazioni"
+];
+
+const NOTE = [
+  "Include supermercato e mercati. Esclude cibo per animali.",
+  "Vino, birra, sigarette. Esclude drink consumati al bar.",
+  "Acquisto vestiti, scarpe e riparazioni dal sarto/calzolaio.",
+  "Affitto, condominio, luce, gas, acqua, TARI. ESCLUDERE IL MUTUO.",
+  "Detersivi, mobili, elettrodomestici, piatti, lenzuola.",
+  "Farmaci, ticket, visite dentistiche, occhiali, lenti.",
+  "Carburante, assicurazione RC, bollo, bus, treno. ESCLUDERE RATA PRESTITO.",
+  "Ricariche cellulari, abbonamento fibra casa, smartphone e PC.",
+  "Palestra, cinema, libri (anche scolastici), cibo e veterinaio animali.",
+  "Tasse universitarie, rette asilo e corsi di formazione.",
+  "Bar, pizzerie, pasti fuori, d'asporto (Glovo/Deliveroo), hotel.",
+  "Parrucchiere, profumi, saponi, assicurazione vita/casa (no auto)."
+];
+
+// Valori di riferimento (Soglie ISTAT - Esempio adattabile)
+const REFS = [490, 25, 110, 580, 120, 130, 310, 75, 115, 20, 145, 130];
+
+function fmt(n) { return '€ ' + Math.round(n); }
+
+function update() {
+  const values = [];
+  for (var i = 0; i < VOCI.length; i++) {
+    const dVal = parseFloat(document.getElementById('d'+i)?.value || 0);
+    const mVal = parseFloat(document.getElementById('m'+i)?.value || 0);
+    const val = (window.innerWidth >= 768) ? dVal : mVal;
+    values.push(val);
+
+    // Sincronizza input tra mobile e desktop
+    if(document.getElementById('d'+i)) document.getElementById('d'+i).value = val || '';
+    if(document.getElementById('m'+i)) document.getElementById('m'+i).value = val || '';
+
+    const diff = val - REFS[i];
+    const diffText = (val > 0) ? (diff > 0 ? '+' + Math.round(diff) : Math.round(diff)) : '—';
+    
+    // Aggiorna scostamento testo
+    if(document.getElementById('dd'+i)) document.getElementById('dd'+i).innerText = (val > 0) ? fmt(diff) : '—';
+    if(document.getElementById('md'+i)) document.getElementById('md'+i).innerText = (val > 0) ? fmt(diff) : '—';
+
+    // Logica Esito
+    const badgeD = document.getElementById('de'+i);
+    const badgeM = document.getElementById('me'+i);
+    
+    if (val <= 0) {
+      const b = '<span class="esito esito-neu">Nessun dato</span>';
+      if(badgeD) badgeD.innerHTML = b; if(badgeM) badgeM.innerHTML = b;
+    } else if (val <= REFS[i]) {
+      const b = '<span class="esito esito-ok">In linea</span>';
+      if(badgeD) badgeD.innerHTML = b; if(badgeM) badgeM.innerHTML = b;
+    } else {
+      const b = '<span class="esito esito-ko">Sopra media</span>';
+      if(badgeD) badgeD.innerHTML = b; if(badgeM) badgeM.innerHTML = b;
+    }
+  }
+  localStorage.setItem('via_debito_val', JSON.stringify(values));
+}
+
+function init() {
+  const prev = JSON.parse(localStorage.getItem('via_debito_val') || '[]');
+  
+  // Tabella Desktop
+  var tb = document.getElementById('tb');
+  tb.innerHTML = '';
+  for (var i = 0; i < VOCI.length; i++) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = 
+      '<td><div style="font-weight:600">' + VOCI[i] + '</div><div class="nota-istat">' + NOTE[i] + '</div></td>' +
+      '<td><input type="number" id="d'+i+'" min="0" value="'+(prev[i]||'')+'" oninput="update()"/></td>' +
+      '<td style="font-weight:500">' + fmt(REFS[i]) + '</td>' +
+      '<td id="dd'+i+'" style="color:#6b7280; font-size:13px">—</td>' +
+      '<td><div id="de'+i+'"></div></td>';
+    tb.appendChild(tr);
+  }
+
+  // Card Mobile
+  var mob = document.getElementById('mob');
+  mob.innerHTML = '';
+  for (var i = 0; i < VOCI.length; i++) {
+    var div = document.createElement('div');
+    div.className = 'mv';
+    div.innerHTML =
+      '<div class="mv-title">' + VOCI[i] + '</div>' +
+      '<div class="nota-istat" style="margin-bottom:12px">' + NOTE[i] + '</div>' +
+      '<div class="mv-grid">' +
+        '<div class="mv-field"><label>Tua Spesa</label><input type="number" id="m'+i+'" value="'+(prev[i]||'')+'" oninput="update()"/></div>' +
+        '<div class="mv-field"><label>Media ISTAT</label><div class="mv-istat">' + fmt(REFS[i]) + '</div></div>' +
+      '</div>' +
+      '<div class="mv-res"><span>Scostamento: <strong id="md'+i+'">—</strong></span><div id="me'+i+'"></div></div>';
+    mob.appendChild(div);
+  }
+  update();
+}
+
+window.onload = init;
+window.onresize = update;
+</script>
+
+</body>
+</html>
